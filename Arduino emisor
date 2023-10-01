@@ -1,0 +1,68 @@
+#include <SPI.h>
+#include <RFM69.h>
+#include <RFM69_ATC.h>
+
+#define NODEID 1
+#define NETWORKID 100
+#define GATEWAYID 1
+#define FREQUENCY RF69_915MHZ  // Puedes cambiar la frecuencia según tu región
+
+#define ENTRADA_A A0
+#define ENTRADA_B A1
+
+RFM69 radio;
+bool entradaA_activada = false;
+bool entradaB_activada = false;
+
+void setup() {
+  Serial.begin(9600);
+  radio.initialize(FREQUENCY, NODEID, NETWORKID);
+  radio.setHighPower();  // Para RFM69HW
+  radio.encrypt(NULL);  // Puedes habilitar la encriptación si es necesario
+  
+  pinMode(ENTRADA_A, INPUT);
+  pinMode(ENTRADA_B, INPUT);
+}
+
+void loop() {
+  // Leer muestras de las entradas A y B
+  int muestraA = analogRead(ENTRADA_A);
+  int muestraB = analogRead(ENTRADA_B);
+
+  // Enviar las muestras a través de RFM69HW
+  enviarMuestra("EntradaA", muestraA);
+  enviarMuestra("EntradaB", muestraB);
+
+  // Revisar si hay señal para activar salidas lógicas
+  if (radio.receiveDone()) {
+    if (radio.DATALEN == sizeof("ActivarEntradaA") && strncmp((char *)radio.DATA, "ActivarEntradaA", 15) == 0) {
+      entradaA_activada = true;
+    } else if (radio.DATALEN == sizeof("ActivarEntradaB") && strncmp((char *)radio.DATA, "ActivarEntradaB", 15) == 0) {
+      entradaB_activada = true;
+    }
+  }
+
+  // Controlar los multiplexores basados en las entradas activadas
+  if (entradaA_activada) {
+    // Activar entrada A del multiplexor
+    // Agrega aquí el código para controlar el multiplexor A
+  } else {
+    // Desactivar entrada A del multiplexor
+    // Agrega aquí el código para desactivar la entrada A del multiplexor A
+  }
+
+  if (entradaB_activada) {
+    // Activar entrada B del multiplexor
+    // Agrega aquí el código para controlar el multiplexor B
+  } else {
+    // Desactivar entrada B del multiplexor
+    // Agrega aquí el código para desactivar la entrada B del multiplexor B
+  }
+}
+
+void enviarMuestra(const char *nombreEntrada, int valor) {
+  char mensaje[50];
+  sprintf(mensaje, "%s:%d", nombreEntrada, valor);
+  radio.send(GATEWAYID, mensaje, strlen(mensaje));
+  radio.waitPacketSent();
+}
